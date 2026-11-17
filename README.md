@@ -56,7 +56,7 @@ a line of its own gets its alt text as a caption below it, and a "picture" whose
 
 ### Posting stories from a program
 
-The StoryMaker program ([LunarJournal](https://github.com/Lundqwist/LunarJournal)) writes chapters
+The [StoryMaker](https://github.com/Lundqwist/StoryMaker) program writes chapters
 from the in-game journal and posts them here. The API is off unless `STORY_TOKEN` (at least 32
 characters) is set in `.env`; every call needs `Authorization: Bearer <STORY_TOKEN>`:
 

@@ -94,7 +94,7 @@ app.MapGet("/api/{game}/character", async (string game, string c, CharacterStore
     });
 });
 
-// Writing stories from outside (the StoryMaker program in github.com/Lundqwist/LunarJournal).
+// Writing stories from outside (the StoryMaker program, github.com/Lundqwist/StoryMaker).
 // Off unless STORY_TOKEN is set; every call needs "Authorization: Bearer <STORY_TOKEN>".
 //   GET  /api/{game}/story?c=<key>                         -> { markdown }: the whole story so far
 //   POST /api/{game}/story?c=<key>  { markdown }             -> saves it as a new chapter: { chapter }
