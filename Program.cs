@@ -40,6 +40,20 @@ app.UseStaticFiles(new StaticFileOptions
     OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "no-cache",
 });
 
+// Pictures and sounds in the stories: data/media/<game>/<name>/<file> at /media/<game>/<name>/<file>.
+// They never change once uploaded (a new upload gets a new name), so they can be cached for long.
+Directory.CreateDirectory(store.MediaRoot);
+var mediaTypes = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+mediaTypes.Mappings[".ogg"] = "audio/ogg";
+mediaTypes.Mappings[".oga"] = "audio/ogg";
+app.UseStaticFiles(new StaticFileOptions
+{
+    RequestPath = "/media",
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(store.MediaRoot),
+    ContentTypeProvider = mediaTypes,
+    OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "public, max-age=604800",
+});
+
 // The characters of one game, for its list page
 app.MapGet("/api/{game}/characters", async (string game, CharacterStore store, Armory armory) =>
 {
@@ -123,6 +137,29 @@ app.MapPost("/api/{game}/story", (string game, string c, StoryPost body, HttpReq
     app.Logger.LogInformation("Story of {Game}/{Key}: chapter {Number} {What}.", g.Key, entry.Key(g), n, body.Chapter is null ? "added" : "replaced");
     return Results.Ok(new { key = entry.Key(g), chapter = n });
 }).WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(400_000));
+
+// Pictures and sounds for the stories (StoryMaker uploads them):
+//   POST /api/{game}/media?c=<key>  multipart "file"  -> { url }   (same token as the stories)
+app.MapPost("/api/{game}/media", async (string game, string c, HttpRequest request, CharacterStore store) =>
+{
+    if (storyToken.Length == 0) return Results.NotFound();
+    if (!Authorized(request)) return Results.Unauthorized();
+    if (Game.Find(game) is not { } g || store.Find(g, c) is not { } entry) return Results.NotFound();
+    if (!request.HasFormContentType) return Results.BadRequest(new { error = "Send the file as multipart/form-data." });
+    var form = await request.ReadFormAsync();
+    if (form.Files.GetFile("file") is not { Length: > 0 } file) return Results.BadRequest(new { error = "No file." });
+    try
+    {
+        using var stream = file.OpenReadStream();
+        var path = store.SaveMedia(g, entry, file.FileName, stream);
+        app.Logger.LogInformation("Media for {Game}/{Key}: {Path} ({Length} bytes).", g.Key, entry.Key(g), path, file.Length);
+        return Results.Ok(new { url = $"{request.PathBase}/media/{path}" });
+    }
+    catch (ArgumentException e)
+    {
+        return Results.BadRequest(new { error = e.Message });
+    }
+}).WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(30_000_000));
 
 // One chapter of a story, with the chapters before and after it
 app.MapGet("/api/{game}/chapter", (string game, string c, int n, CharacterStore store) =>

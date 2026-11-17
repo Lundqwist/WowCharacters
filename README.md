@@ -41,7 +41,18 @@ lists the chapters with links; each chapter has its own page
 (`forever/chapter.html?c=<name>&n=<number>`) with links to the previous and next chapter. An older
 single file `stories/<game>/<name>.md`, if there is one, is shown above the list as an introduction.
 
-Raw HTML in a story is shown as text. Images can be linked with Markdown (`![](https://...)`).
+Raw HTML in a story is shown as text. Pictures and sounds use Markdown's picture syntax; a picture on
+a line of its own gets its alt text as a caption below it, and a "picture" whose file is a sound
+(`.mp3`, `.ogg`, `.wav`, `.m4a`) becomes a sound player with its caption:
+
+```markdown
+![Ratchet at dawn](/wowcharacters/media/forever/lunamal-sunshadow/ratchet.jpg)
+![The harbour bell](/wowcharacters/media/forever/lunamal-sunshadow/bell.mp3)
+---
+```
+
+`---` is shown as a row of gold stars between scenes. Uploaded files live in
+`data/media/<game>/<name>/` and are served at `/wowcharacters/media/...`.
 
 ### Posting stories from a program
 
@@ -54,6 +65,7 @@ characters) is set in `.env`; every call needs `Authorization: Bearer <STORY_TOK
 | `GET /api/{game}/story?c=<key>` | the whole story so far as Markdown: `{ key, markdown }` |
 | `POST /api/{game}/story?c=<key>` with `{ "markdown": "..." }` | saves it as the next chapter: `{ key, chapter }` |
 | `POST /api/{game}/story?c=<key>` with `{ "markdown": "...", "chapter": 2 }` | new text for chapter 2 |
+| `POST /api/{game}/media?c=<key>` with a multipart `file` (pictures: jpg, png, webp, gif; sounds: mp3, ogg, wav, m4a; up to 30 MB) | stores it under a safe, unique name: `{ url }` |
 
 Only characters in `characters.json` can be written. A chapter that is replaced is kept first in
 `stories/<game>/.history/<name>-<number>-<date>.md`.

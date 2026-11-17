@@ -45,7 +45,14 @@ public class CharacterStore(string dataDir)
 {
     static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web) { ReadCommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
     // Raw HTML in a story is shown as text, never run as part of the page
-    static readonly MarkdownPipeline Markdown = new MarkdownPipelineBuilder().UseAdvancedExtensions().DisableHtml().Build();
+    // Markdig's own media links are off: a sound becomes a player with its caption below (ToHtml)
+    static readonly MarkdownPipeline Markdown = WithoutMediaLinks(new MarkdownPipelineBuilder().UseAdvancedExtensions().DisableHtml()).Build();
+
+    static MarkdownPipelineBuilder WithoutMediaLinks(MarkdownPipelineBuilder b)
+    {
+        b.Extensions.RemoveAll(e => e is Markdig.Extensions.MediaLinks.MediaLinkExtension);
+        return b;
+    }
 
     string ListFile => Path.Combine(dataDir, "characters.json");
 
@@ -98,7 +105,7 @@ public class CharacterStore(string dataDir)
     {
         var file = IntroFile(game, c);
         var text = File.Exists(file) ? File.ReadAllText(file) : "";
-        return text.Trim().Length > 0 ? Markdig.Markdown.ToHtml(text, Markdown) : null;
+        return text.Trim().Length > 0 ? ToHtml(text) : null;
     }
 
     public List<Chapter> Chapters(Game game, CharacterEntry c)
@@ -136,7 +143,34 @@ public class CharacterStore(string dataDir)
         return new Chapter(n, title.Length > 0 ? title : $"Chapter {n}", subtitle, string.Join('\n', lines).Trim());
     }
 
-    public string ChapterHtml(Chapter ch) => Markdig.Markdown.ToHtml(ch.Markdown, Markdown);
+    public string ChapterHtml(Chapter ch) => ToHtml(ch.Markdown);
+
+    // A picture on a line of its own becomes a figure with its caption (the alt text) under it, and a
+    // "picture" whose file is a sound becomes a sound player:  ![The wind at the docks](media/.../wind.mp3)
+    static readonly System.Text.RegularExpressions.Regex LoneImage = new(
+        "<p><img src=\"([^\"]+)\" alt=\"([^\"]*)\" /></p>", System.Text.RegularExpressions.RegexOptions.Compiled);
+    static readonly System.Text.RegularExpressions.Regex InlineSound = new(
+        "<img src=\"([^\"]+\\.(?:mp3|ogg|oga|wav|m4a))\" alt=\"([^\"]*)\" />",
+        System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    static readonly string[] SoundExtensions = [".mp3", ".ogg", ".oga", ".wav", ".m4a"];
+
+    static string ToHtml(string markdown)
+    {
+        var html = Markdig.Markdown.ToHtml(markdown, Markdown);
+        html = LoneImage.Replace(html, m =>
+        {
+            var src = m.Groups[1].Value;
+            var caption = m.Groups[2].Value;
+            var isSound = SoundExtensions.Any(e => src.Split('?')[0].EndsWith(e, StringComparison.OrdinalIgnoreCase));
+            var media = isSound
+                ? $"<audio controls preload=\"none\" src=\"{src}\"></audio>"
+                : $"<img src=\"{src}\" alt=\"{caption}\" loading=\"lazy\" />";
+            var cap = caption.Length > 0 ? $"<figcaption>{caption}</figcaption>" : "";
+            return $"<figure class=\"{(isSound ? "sound" : "picture")}\">{media}{cap}</figure>";
+        });
+        // a sound in the middle of a paragraph: just the player
+        return InlineSound.Replace(html, m => $"<audio controls preload=\"none\" src=\"{m.Groups[1].Value}\" title=\"{m.Groups[2].Value}\"></audio>");
+    }
 
     public bool HasStory(Game game, CharacterEntry c) => Intro(game, c) is not null || Chapters(game, c).Count > 0;
 
@@ -177,5 +211,33 @@ public class CharacterStore(string dataDir)
     }
 
     public bool ChapterExists(Game game, CharacterEntry c, int n) => File.Exists(ChapterFile(game, c, n));
+
+    // ---------------------------------------------------------------- pictures and sounds
+    //
+    // Files for the stories: media/<game>/<name>/<file>, served at /media/... (see Program.cs).
+
+    public static readonly string[] MediaExtensions = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".mp3", ".ogg", ".oga", ".wav", ".m4a"];
+
+    public string MediaRoot => Path.Combine(dataDir, "media");
+
+    /// <summary>Saves an uploaded picture or sound; returns its address below /media, e.g. "forever/gilded-gobsong/razor-hill.jpg".</summary>
+    public string SaveMedia(Game game, CharacterEntry c, string fileName, Stream data)
+    {
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+        if (!MediaExtensions.Contains(ext)) throw new ArgumentException($"Files of type {ext} can't be used.");
+        // a plain, safe file name: letters, digits, - and _
+        var stem = new string(Path.GetFileNameWithoutExtension(fileName).Select(ch => char.IsLetterOrDigit(ch) || ch is '-' or '_' ? char.ToLowerInvariant(ch) : '-').ToArray()).Trim('-');
+        if (stem.Length == 0) stem = "file";
+        if (stem.Length > 80) stem = stem[..80];
+        var dir = Path.Combine(MediaRoot, game.Key, FileName(game, c));
+        Directory.CreateDirectory(dir);
+        lock (WriteLock)
+        {
+            var name = stem + ext;
+            for (int i = 2; File.Exists(Path.Combine(dir, name)); i++) name = $"{stem}-{i}{ext}";
+            using (var file = File.Create(Path.Combine(dir, name))) data.CopyTo(file);
+            return $"{game.Key}/{FileName(game, c)}/{name}";
+        }
+    }
     class CharacterList { public List<CharacterEntry> Characters { get; set; } = []; }
 }
