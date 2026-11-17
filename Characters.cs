@@ -58,7 +58,8 @@ public class CharacterStore(string dataDir)
         File.WriteAllText(ListFile, """
             // The characters shown on lundqwist.se/wowcharacters. Edit this file; changes show at once.
             //   Retail:  { "game": "retail",  "realm": "draenor", "name": "moonie" }
-            //   Forever: { "game": "forever", "name": "lunara-moonshade" }   (the slug from the Armory address)
+            //   Forever: { "game": "forever", "name": "lunamal-sunshadow", "realm": "PvP ruleset (EU)" }
+            //            (name = the slug from the Armory address; Forever has no realms, so "realm" is only a label)
             // A story: a Markdown file in stories/retail/<realm>-<name>.md or stories/forever/<name>.md
             { "characters": [] }
             """);

@@ -25,7 +25,7 @@ which deploys never touch. Changes show at once; no restart needed.
 ```jsonc
 { "characters": [
   { "game": "retail",  "realm": "draenor", "name": "moonie" },
-  { "game": "forever", "name": "lunara-moonshade" },          // Forever has no realms: the slug from the Armory address
+  { "game": "forever", "name": "lunamal-sunshadow", "realm": "PvP ruleset (EU)" },  // Forever: the slug from the Armory address; no realms, so "realm" is only a label
   { "game": "retail",  "realm": "draenor", "name": "oldalt", "hidden": true }
 ] }
 ```

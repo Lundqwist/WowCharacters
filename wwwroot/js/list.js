@@ -16,7 +16,7 @@ getJson(`../api/${GAME}/characters`)
       const card = c.card
       const name = card?.name || c.name
       const info = card
-        ? [describe(card), [card.realm, card.guild && `<${card.guild}>`].filter(Boolean).join(' ')].filter(Boolean)
+        ? [describe(card), [card.realm || c.realm, card.guild && `<${card.guild}>`].filter(Boolean).join(' ')].filter(Boolean)
         : [c.realm, 'No Armory information'].filter(Boolean)
 
       list.append(el('li', {},

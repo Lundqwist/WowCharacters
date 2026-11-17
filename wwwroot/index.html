@@ -11,19 +11,43 @@
     <div class="site-header-inner">
       <a class="brand" href="/">Lundqwist<span>.se</span></a>
       <nav class="site-nav" aria-label="Characters">
+      <a href="./" aria-current="page">Characters</a>
       <a href="retail/">Retail</a>
-      <a href="forever/">WoW: Forever</a>
+      <a href="forever/">Forever</a>
       <a href="/projects">Projects</a>
       </nav>
     </div>
   </header>
 
-  <main>
+  <main class="chooser">
     <h1>My World of Warcraft characters</h1>
-    <p class="lead">The characters I play, with what the Armory knows about them and the stories behind them. Retail and WoW: Forever are two different worlds, so each has its own page.</p>
+    <p class="lead">The characters I play, with what the Armory knows about them and the stories behind them. Retail and WoW: Forever are two different worlds: choose one.</p>
     <ul class="games">
-      <li><a class="game-card" href="retail/"><h2>World of Warcraft</h2><p>Retail: the game as it is today.</p></a></li>
-      <li><a class="game-card" href="forever/"><h2>World of Warcraft: Forever</h2><p>The Forever realms.</p></a></li>
+      <li>
+        <a class="game-card" href="retail/">
+          <!-- A shield with two crossed axes -->
+          <svg class="crest" viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M32 4 L54 12 V30 C54 44 44 54 32 60 C20 54 10 44 10 30 V12 Z" fill="rgba(0,0,0,.35)" />
+            <path d="M21 44 L43 20 M43 44 L21 20" />
+            <path d="M43 20 c-6-2-6 8 0 6 M21 20 c6-2 6 8 0 6" />
+          </svg>
+          <span class="label">Retail</span>
+          <span class="sub">World of Warcraft as it is today</span>
+          <span class="count" data-game="retail"></span>
+        </a>
+      </li>
+      <li>
+        <a class="game-card" href="forever/">
+          <!-- The same shield with an hourglass: the old world, kept forever -->
+          <svg class="crest" viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M32 4 L54 12 V30 C54 44 44 54 32 60 C20 54 10 44 10 30 V12 Z" fill="rgba(0,0,0,.35)" />
+            <path d="M22 18 H42 M22 46 H42 M24 18 C24 28 40 36 40 46 M40 18 C40 28 24 36 24 46" />
+          </svg>
+          <span class="label">Forever</span>
+          <span class="sub">World of Warcraft: Forever</span>
+          <span class="count" data-game="forever"></span>
+        </a>
+      </li>
     </ul>
   </main>
 
@@ -31,5 +55,17 @@
     Character information from Blizzard's Armory. World of Warcraft is a trademark of Blizzard Entertainment; this is a fan page.
   </footer>
 
+  <script>
+    // How many characters each game has, under its card
+    for (const span of document.querySelectorAll('.count')) {
+      fetch(`api/${span.dataset.game}/characters`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          const n = data?.characters?.length ?? 0
+          span.textContent = n === 0 ? 'No characters yet' : n === 1 ? '1 character' : `${n} characters`
+        })
+        .catch(() => {})
+    }
+  </script>
 </body>
 </html>

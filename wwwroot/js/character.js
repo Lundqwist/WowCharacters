@@ -35,7 +35,7 @@ function show(data) {
       el('div', { class: 'sheet-head' },
         el('div', { class: 'render' }, s.render || s.avatar ? el('img', { src: s.render || s.avatar, alt: `${name}` }) : null),
         el('div', {},
-          el('dl', { class: 'facts' }, facts(s).map(([k, v]) => [el('dt', { text: k }), el('dd', { text: v })])),
+          el('dl', { class: 'facts panel' }, facts(s, data).map(([k, v]) => [el('dt', { text: k }), el('dd', { text: v })])),
           el('div', { class: 'buttons' },
             el('a', { class: 'button', href: data.armoryUrl, target: '_blank', rel: 'noopener', text: 'View on the Armory' })))))
   }
@@ -78,13 +78,14 @@ function show(data) {
   page.replaceChildren(...parts.filter(Boolean))
 }
 
-function facts(s) {
+// The realm: the Armory's name for it, or for Forever (which has no realms in the API) the label in characters.json
+function facts(s, data) {
   const rows = [
     ['Level', s.level],
     ['Race', s.race],
     ['Class', [s.spec, s.class].filter(Boolean).join(' ')],
     ['Faction', s.faction],
-    ['Realm', s.realm],
+    ['Realm', s.realm || data.realm],
     ['Guild', s.guild],
     ['Item level', s.itemLevel],
     ['Achievement points', s.achievementPoints ? s.achievementPoints.toLocaleString('en-GB') : ''],
