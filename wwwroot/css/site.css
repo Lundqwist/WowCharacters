@@ -194,6 +194,33 @@ main { flex: 1; width: 100%; max-width: var(--content); margin: 0 auto; padding:
 .story h2, .story h3 { border: 0; box-shadow: none; margin: 1.75rem 0 .5rem; }
 .story img { margin: 1rem 0; border: 1px solid var(--line); border-radius: 4px; }
 .story blockquote { margin: 1rem 0; padding-left: 1rem; border-left: 3px solid var(--red); color: var(--muted); font-style: italic; }
+.story p:first-child::first-letter { font-family: Georgia, serif; font-size: 3.1em; float: left; line-height: .9; padding: .08em .1em 0 0; color: var(--gold); }
+
+/* The list of chapters on the character page, and one chapter on its own page */
+.chapters { list-style: none; padding: 0; margin: 0; max-width: 46rem; }
+.chapters li { border-bottom: 1px solid var(--line); }
+.chapters li:first-child { border-top: 1px solid var(--line); }
+.chapters a { display: flex; gap: 1rem; align-items: baseline; padding: .7rem .25rem .2rem; text-decoration: none; }
+.chapters li > a:only-child { padding-bottom: .7rem; }
+.chapters a:hover { background: var(--panel); }
+.chapter-no { font-family: Georgia, serif; text-transform: uppercase; letter-spacing: .06em; font-size: .8rem; color: var(--muted); min-width: 6.5rem; }
+.chapter-title { font-family: Georgia, serif; font-size: 1.15rem; }
+.chapters .chapter-sub { padding: 0 .25rem .7rem 7.75rem; }
+.chapter-sub { color: var(--muted); font-style: italic; font-size: .92rem; }
+.chapter-kicker { color: var(--muted); font-family: Georgia, serif; text-transform: uppercase; letter-spacing: .08em; font-size: .8rem; margin: 1.5rem 0 .25rem; }
+#chapter h1 + .chapter-sub { margin: 0 0 1.75rem; }
+#chapter h1:not(:has(+ .chapter-sub)) { margin-bottom: 1.75rem; }
+.chapter-nav { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; align-items: start; max-width: 46rem; margin: 2.5rem 0 0; padding-top: 1rem; border-top: 1px solid var(--line); }
+.chapter-nav a { text-decoration: none; display: flex; flex-direction: column; }
+.chapter-nav a:last-child { text-align: right; }
+.chapter-nav .chapter-nav-all { align-self: center; font-family: Georgia, serif; text-transform: uppercase; letter-spacing: .06em; font-size: .85rem; }
+.chapter-nav-label { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; }
+@media (max-width: 600px) {
+  .chapters a { flex-direction: column; gap: 0; }
+  .chapters .chapter-sub { padding-left: .25rem; }
+  .chapter-nav { grid-template-columns: 1fr 1fr; }
+  .chapter-nav .chapter-nav-all { grid-column: 1 / -1; grid-row: 2; justify-self: center; }
+}
 
 /* Item quality colours, as in the game */
 .q-POOR { color: #9d9d9d; } .q-COMMON { color: #ffffff; } .q-UNCOMMON { color: #1eff00; }

@@ -30,10 +30,16 @@ which deploys never touch. Changes show at once; no restart needed.
 ] }
 ```
 
-Stories are Markdown files:
+A story is a row of chapters, one Markdown file each, in a folder per character:
 
-- retail: `stories/retail/<realm>-<name>.md`, e.g. `stories/retail/draenor-moonie.md`
-- Forever: `stories/forever/<name>.md`, e.g. `stories/forever/lunara-moonshade.md`
+- retail: `stories/retail/<realm>-<name>/001.md`, `002.md`, ... e.g. `stories/retail/draenor-moonie/001.md`
+- Forever: `stories/forever/<name>/001.md`, ... e.g. `stories/forever/lunamal-sunshadow/001.md`
+
+A chapter starts with its title as a heading (`### Salt on the Wind`), optionally followed by an
+italic line (`*17 November 2026 · Thousand Needles · level 41*`), then the text. The character page
+lists the chapters with links; each chapter has its own page
+(`forever/chapter.html?c=<name>&n=<number>`) with links to the previous and next chapter. An older
+single file `stories/<game>/<name>.md`, if there is one, is shown above the list as an introduction.
 
 Raw HTML in a story is shown as text. Images can be linked with Markdown (`![](https://...)`).
 
@@ -45,12 +51,12 @@ characters) is set in `.env`; every call needs `Authorization: Bearer <STORY_TOK
 
 | | |
 |---|---|
-| `GET /api/{game}/story?c=<key>` | the story as Markdown: `{ key, markdown }` |
-| `POST /api/{game}/story?c=<key>` with `{ "markdown": "...", "replace": false }` | adds a chapter to the end (`replace: true`: replaces the whole story) |
+| `GET /api/{game}/story?c=<key>` | the whole story so far as Markdown: `{ key, markdown }` |
+| `POST /api/{game}/story?c=<key>` with `{ "markdown": "..." }` | saves it as the next chapter: `{ key, chapter }` |
+| `POST /api/{game}/story?c=<key>` with `{ "markdown": "...", "chapter": 2 }` | new text for chapter 2 |
 
-Only characters in `characters.json` can be written. The version a post replaces is kept first in
-`stories/<game>/.history/<name>-<date>.md`.
-
+Only characters in `characters.json` can be written. A chapter that is replaced is kept first in
+`stories/<game>/.history/<name>-<number>-<date>.md`.
 ## How it runs
 
 ASP.NET Core 8 minimal API (`Program.cs`, `Armory.cs`, `Characters.cs`) and plain HTML/JS pages in

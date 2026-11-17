@@ -41,12 +41,19 @@ function show(data) {
   }
 
   // The story comes first after the summary: it is what the page is really for
-  parts.push(el('h2', { text: 'Story' }))
-  if (data.storyHtml) {
-    const story = el('div', { class: 'story' })
-    story.innerHTML = data.storyHtml // made from Markdown on the server, with raw HTML switched off
-    parts.push(story)
-  } else {
+  parts.push(el('h2', { id: 'story', text: 'Story' }))
+  if (data.introHtml) {
+    const intro = el('div', { class: 'story' })
+    intro.innerHTML = data.introHtml // made from Markdown on the server, with raw HTML switched off
+    parts.push(intro)
+  }
+  if (data.chapters?.length) {
+    parts.push(el('ol', { class: 'chapters' }, data.chapters.map((ch, i) => el('li', {},
+      el('a', { href: `chapter.html?c=${encodeURIComponent(data.key)}&n=${ch.number}` },
+        el('span', { class: 'chapter-no', text: `Chapter ${i + 1}` }),
+        el('span', { class: 'chapter-title', text: ch.title })),
+      ch.subtitle ? el('div', { class: 'chapter-sub', text: ch.subtitle }) : null))))
+  } else if (!data.introHtml) {
     parts.push(el('p', { class: 'muted', text: 'The story of this character is still to be written.' }))
   }
 

@@ -2,9 +2,10 @@
 //
 //   /retail/                  the retail characters      (wwwroot/retail/index.html)
 //   /forever/                 the WoW: Forever characters (wwwroot/forever/index.html)
-//   /retail/character.html?c=draenor/moonie   one character: Armory information and its story
+//   /retail/character.html?c=draenor/moonie   one character: Armory information and its list of chapters
+//   /forever/chapter.html?c=name-surname&n=2  one chapter of a character's story
 //
-// Which characters are shown: data/characters.json. Their stories: data/stories/<game>/*.md.
+// Which characters are shown: data/characters.json. Their stories: data/stories/<game>/<name>/001.md, 002.md...
 // Both live in the data folder (Z:\wowcharacters\data on the NAS) and are never touched by deploys.
 // The lundqwist.se site passes /wowcharacters/... on to this app, which runs with PathBase=/wowcharacters,
 // so the pages only use relative addresses.
@@ -55,7 +56,7 @@ app.MapGet("/api/{game}/characters", async (string game, CharacterStore store, A
             name = c.Name,
             realm = c.Realm,
             armoryUrl = Armory.ArmoryUrl(g, c.Key(g)),
-            hasStory = store.Story(g, c) is not null,
+            hasStory = store.HasStory(g, c),
             card = cards[i],
         }),
     });
@@ -73,15 +74,17 @@ app.MapGet("/api/{game}/character", async (string game, string c, CharacterStore
         name = entry.Name,
         realm = entry.Realm,
         armoryUrl = Armory.ArmoryUrl(g, key),
-        storyHtml = store.Story(g, entry),
+        introHtml = store.Intro(g, entry),
+        chapters = store.Chapters(g, entry).Select(ch => new { number = ch.Number, title = ch.Title, subtitle = ch.Subtitle }),
         sheet = await armory.Sheet(g, key),
     });
 });
 
 // Writing stories from outside (the StoryMaker program in github.com/Lundqwist/LunarJournal).
 // Off unless STORY_TOKEN is set; every call needs "Authorization: Bearer <STORY_TOKEN>".
-//   GET  /api/{game}/story?c=<key>                     -> { markdown }
-//   POST /api/{game}/story?c=<key>  { markdown, replace } -> adds a chapter (or replaces the story)
+//   GET  /api/{game}/story?c=<key>                         -> { markdown }: the whole story so far
+//   POST /api/{game}/story?c=<key>  { markdown }             -> saves it as a new chapter: { chapter }
+//   POST /api/{game}/story?c=<key>  { markdown, chapter: 2 } -> new text for chapter 2 (the old one is kept in .history)
 var storyToken = app.Configuration["STORY_TOKEN"] ?? "";
 if (storyToken.Length > 0 && storyToken.Length < 32)
 {
@@ -114,13 +117,38 @@ app.MapPost("/api/{game}/story", (string game, string c, StoryPost body, HttpReq
     if (Game.Find(game) is not { } g || store.Find(g, c) is not { } entry) return Results.NotFound();
     if (string.IsNullOrWhiteSpace(body.Markdown)) return Results.BadRequest(new { error = "No text." });
     if (body.Markdown.Length > 200_000) return Results.BadRequest(new { error = "Too long." });
-    var text = store.WriteStory(g, entry, body.Markdown, body.Replace);
-    app.Logger.LogInformation("Story of {Game}/{Key} {What} ({Length} characters).", g.Key, entry.Key(g), body.Replace ? "replaced" : "got a new chapter", text.Length);
-    return Results.Ok(new { key = entry.Key(g), length = text.Length });
+    if (body.Chapter is { } wanted && !store.ChapterExists(g, entry, wanted))
+        return Results.BadRequest(new { error = $"There is no chapter {wanted}." });
+    var n = store.SaveChapter(g, entry, body.Markdown, body.Chapter);
+    app.Logger.LogInformation("Story of {Game}/{Key}: chapter {Number} {What}.", g.Key, entry.Key(g), n, body.Chapter is null ? "added" : "replaced");
+    return Results.Ok(new { key = entry.Key(g), chapter = n });
 }).WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(400_000));
+
+// One chapter of a story, with the chapters before and after it
+app.MapGet("/api/{game}/chapter", (string game, string c, int n, CharacterStore store) =>
+{
+    if (Game.Find(game) is not { } g || store.Find(g, c) is not { } entry) return Results.NotFound();
+    var chapters = store.Chapters(g, entry);
+    var i = chapters.FindIndex(ch => ch.Number == n);
+    if (i < 0) return Results.NotFound();
+    var ch = chapters[i];
+    return Results.Ok(new
+    {
+        key = entry.Key(g),
+        name = entry.Name,
+        number = ch.Number,
+        title = ch.Title,
+        subtitle = ch.Subtitle,
+        html = store.ChapterHtml(ch),
+        count = chapters.Count,
+        position = i + 1,
+        previous = i > 0 ? new { number = chapters[i - 1].Number, title = chapters[i - 1].Title } : null,
+        next = i < chapters.Count - 1 ? new { number = chapters[i + 1].Number, title = chapters[i + 1].Title } : null,
+    });
+});
 
 app.Map("/api/{**rest}", () => Results.NotFound());
 
 app.Run();
 
-record StoryPost(string Markdown, bool Replace = false);
+record StoryPost(string Markdown, int? Chapter = null);

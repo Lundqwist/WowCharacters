@@ -60,7 +60,7 @@ public class CharacterStore(string dataDir)
             //   Retail:  { "game": "retail",  "realm": "draenor", "name": "moonie" }
             //   Forever: { "game": "forever", "name": "lunamal-sunshadow", "realm": "PvP ruleset (EU)" }
             //            (name = the slug from the Armory address; Forever has no realms, so "realm" is only a label)
-            // A story: a Markdown file in stories/retail/<realm>-<name>.md or stories/forever/<name>.md
+            // A story: one Markdown file per chapter in stories/retail/<realm>-<name>/ or stories/forever/<name>/ (001.md, 002.md, ...)
             { "characters": [] }
             """);
     }
@@ -76,51 +76,106 @@ public class CharacterStore(string dataDir)
     public CharacterEntry? Find(Game game, string key) =>
         All(game).FirstOrDefault(c => c.Key(game) == key.ToLowerInvariant());
 
-    string StoryFile(Game game, CharacterEntry c)
+    // ---------------------------------------------------------------- stories
+    //
+    // A story is a row of chapters, one Markdown file each:  stories/<game>/<name>/001.md, 002.md, ...
+    // Each starts with its title as a heading ("### The salt flats"), often followed by an italic line
+    // (dates, zones). An older single file stories/<game>/<name>.md, if there is one, is shown before the
+    // chapters as an introduction.
+
+    // The key comes from characters.json, not from the address, but is still kept to a plain file name
+    static string FileName(Game game, CharacterEntry c) =>
+        new(c.Key(game).Replace('/', '-').Where(ch => char.IsLetterOrDigit(ch) || ch == '-').ToArray());
+
+    string IntroFile(Game game, CharacterEntry c) => Path.Combine(dataDir, "stories", game.Key, FileName(game, c) + ".md");
+    string ChapterDir(Game game, CharacterEntry c) => Path.Combine(dataDir, "stories", game.Key, FileName(game, c));
+    string ChapterFile(Game game, CharacterEntry c, int n) => Path.Combine(ChapterDir(game, c), $"{n:000}.md");
+
+    public record Chapter(int Number, string Title, string Subtitle, string Markdown);
+
+    /// <summary>The introduction (the older single story file) as HTML, or null.</summary>
+    public string? Intro(Game game, CharacterEntry c)
     {
-        // The key comes from characters.json, not from the address, but is still kept to a plain file name
-        var name = new string(c.Key(game).Replace('/', '-').Where(ch => char.IsLetterOrDigit(ch) || ch == '-').ToArray());
-        return Path.Combine(dataDir, "stories", game.Key, name + ".md");
+        var file = IntroFile(game, c);
+        var text = File.Exists(file) ? File.ReadAllText(file) : "";
+        return text.Trim().Length > 0 ? Markdig.Markdown.ToHtml(text, Markdown) : null;
     }
 
-    /// <summary>The story as HTML, or null when there is no story file yet.</summary>
-    public string? Story(Game game, CharacterEntry c)
+    public List<Chapter> Chapters(Game game, CharacterEntry c)
     {
-        var file = StoryFile(game, c);
-        return File.Exists(file) ? Markdig.Markdown.ToHtml(File.ReadAllText(file), Markdown) : null;
+        var dir = ChapterDir(game, c);
+        if (!Directory.Exists(dir)) return [];
+        var list = new List<Chapter>();
+        foreach (var file in Directory.GetFiles(dir, "*.md"))
+        {
+            if (!int.TryParse(Path.GetFileNameWithoutExtension(file), out var n) || n < 1) continue;
+            list.Add(ParseChapter(n, File.ReadAllText(file)));
+        }
+        return list.OrderBy(x => x.Number).ToList();
     }
 
-    /// <summary>The story as Markdown, or "" when there is none yet.</summary>
+    static Chapter ParseChapter(int n, string text)
+    {
+        var lines = text.Replace("\r\n", "\n").Trim().Split('\n').ToList();
+        string title = "", subtitle = "";
+        if (lines.Count > 0 && lines[0].StartsWith('#'))
+        {
+            title = lines[0].TrimStart('#').Trim();
+            lines.RemoveAt(0);
+        }
+        var first = lines.FindIndex(l => l.Trim().Length > 0);
+        if (first >= 0)
+        {
+            var l = lines[first].Trim();
+            if (l.Length > 2 && (l.StartsWith('*') && l.EndsWith('*') || l.StartsWith('_') && l.EndsWith('_')))
+            {
+                subtitle = l.Trim('*', '_').Trim();
+                lines.RemoveAt(first);
+            }
+        }
+        return new Chapter(n, title.Length > 0 ? title : $"Chapter {n}", subtitle, string.Join('\n', lines).Trim());
+    }
+
+    public string ChapterHtml(Chapter ch) => Markdig.Markdown.ToHtml(ch.Markdown, Markdown);
+
+    public bool HasStory(Game game, CharacterEntry c) => Intro(game, c) is not null || Chapters(game, c).Count > 0;
+
+    /// <summary>The whole story as Markdown (introduction and every chapter), for whoever writes the next chapter.</summary>
     public string StoryMarkdown(Game game, CharacterEntry c)
     {
-        var file = StoryFile(game, c);
-        return File.Exists(file) ? File.ReadAllText(file) : "";
+        var parts = new List<string>();
+        var intro = IntroFile(game, c);
+        if (File.Exists(intro) && File.ReadAllText(intro).Trim().Length > 0) parts.Add(File.ReadAllText(intro).Trim());
+        foreach (var ch in Chapters(game, c))
+            parts.Add(File.ReadAllText(ChapterFile(game, c, ch.Number)).Replace("\r\n", "\n").Trim());
+        return string.Join("\n\n", parts);
     }
 
     static readonly object WriteLock = new();
 
     /// <summary>
-    /// Adds a chapter to the end of the story, or replaces the whole story. The version it replaces is kept
-    /// in stories/&lt;game&gt;/.history/ first, so nothing posted can be lost.
+    /// Saves a chapter: a new one after the last (number null), or a new text for an existing one. A chapter that
+    /// is replaced is kept in stories/&lt;game&gt;/.history/ first, so nothing posted can be lost. Returns its number.
     /// </summary>
-    public string WriteStory(Game game, CharacterEntry c, string markdown, bool replace)
+    public int SaveChapter(Game game, CharacterEntry c, string markdown, int? number)
     {
         lock (WriteLock)
         {
-            var file = StoryFile(game, c);
-            var old = File.Exists(file) ? File.ReadAllText(file) : "";
-            if (old.Length > 0)
+            var dir = ChapterDir(game, c);
+            Directory.CreateDirectory(dir);
+            int n = number ?? (Chapters(game, c).Select(x => x.Number).DefaultIfEmpty(0).Max() + 1);
+            var file = ChapterFile(game, c, n);
+            if (File.Exists(file))
             {
-                var history = Path.Combine(Path.GetDirectoryName(file)!, ".history");
+                var history = Path.Combine(dataDir, "stories", game.Key, ".history");
                 Directory.CreateDirectory(history);
-                File.WriteAllText(Path.Combine(history, $"{Path.GetFileNameWithoutExtension(file)}-{DateTime.Now:yyyyMMdd-HHmmss}.md"), old);
+                File.Copy(file, Path.Combine(history, $"{FileName(game, c)}-{n:000}-{DateTime.Now:yyyyMMdd-HHmmss}.md"));
             }
-            markdown = markdown.Replace("\r\n", "\n").Trim();
-            var text = replace || old.Trim().Length == 0 ? markdown + "\n" : old.TrimEnd() + "\n\n" + markdown + "\n";
-            File.WriteAllText(file, text, new System.Text.UTF8Encoding(false));
-            return text;
+            File.WriteAllText(file, markdown.Replace("\r\n", "\n").Trim() + "\n", new System.Text.UTF8Encoding(false));
+            return n;
         }
     }
 
+    public bool ChapterExists(Game game, CharacterEntry c, int n) => File.Exists(ChapterFile(game, c, n));
     class CharacterList { public List<CharacterEntry> Characters { get; set; } = []; }
 }
