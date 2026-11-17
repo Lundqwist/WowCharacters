@@ -26,6 +26,8 @@ services:
       # Blizzard API client (develop.battle.net); without it only the character names are shown
       - BLIZZARD_CLIENT_ID=${BLIZZARD_CLIENT_ID:-}
       - BLIZZARD_CLIENT_SECRET=${BLIZZARD_CLIENT_SECRET:-}
+      # Lets the StoryMaker program post stories (POST /api/{game}/story); empty = off
+      - STORY_TOKEN=${STORY_TOKEN:-}
       - TZ=Europe/Stockholm
     volumes:
       - ./app:/app:ro

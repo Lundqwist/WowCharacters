@@ -37,6 +37,20 @@ Stories are Markdown files:
 
 Raw HTML in a story is shown as text. Images can be linked with Markdown (`![](https://...)`).
 
+### Posting stories from a program
+
+The StoryMaker program ([LunarJournal](https://github.com/Lundqwist/LunarJournal)) writes chapters
+from the in-game journal and posts them here. The API is off unless `STORY_TOKEN` (at least 32
+characters) is set in `.env`; every call needs `Authorization: Bearer <STORY_TOKEN>`:
+
+| | |
+|---|---|
+| `GET /api/{game}/story?c=<key>` | the story as Markdown: `{ key, markdown }` |
+| `POST /api/{game}/story?c=<key>` with `{ "markdown": "...", "replace": false }` | adds a chapter to the end (`replace: true`: replaces the whole story) |
+
+Only characters in `characters.json` can be written. The version a post replaces is kept first in
+`stories/<game>/.history/<name>-<date>.md`.
+
 ## How it runs
 
 ASP.NET Core 8 minimal API (`Program.cs`, `Armory.cs`, `Characters.cs`) and plain HTML/JS pages in

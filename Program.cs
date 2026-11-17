@@ -78,6 +78,49 @@ app.MapGet("/api/{game}/character", async (string game, string c, CharacterStore
     });
 });
 
+// Writing stories from outside (the StoryMaker program in github.com/Lundqwist/LunarJournal).
+// Off unless STORY_TOKEN is set; every call needs "Authorization: Bearer <STORY_TOKEN>".
+//   GET  /api/{game}/story?c=<key>                     -> { markdown }
+//   POST /api/{game}/story?c=<key>  { markdown, replace } -> adds a chapter (or replaces the story)
+var storyToken = app.Configuration["STORY_TOKEN"] ?? "";
+if (storyToken.Length > 0 && storyToken.Length < 32)
+{
+    app.Logger.LogWarning("STORY_TOKEN is shorter than 32 characters: story writing is switched off.");
+    storyToken = "";
+}
+
+bool Authorized(HttpRequest request)
+{
+    if (storyToken.Length == 0) return false;
+    var header = request.Headers.Authorization.ToString();
+    if (!header.StartsWith("Bearer ", StringComparison.Ordinal)) return false;
+    var given = System.Text.Encoding.UTF8.GetBytes(header[7..].Trim());
+    var wanted = System.Text.Encoding.UTF8.GetBytes(storyToken);
+    return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(given, wanted);
+}
+
+app.MapGet("/api/{game}/story", (string game, string c, HttpRequest request, CharacterStore store) =>
+{
+    if (storyToken.Length == 0) return Results.NotFound();
+    if (!Authorized(request)) return Results.Unauthorized();
+    if (Game.Find(game) is not { } g || store.Find(g, c) is not { } entry) return Results.NotFound();
+    return Results.Ok(new { key = entry.Key(g), markdown = store.StoryMarkdown(g, entry) });
+});
+
+app.MapPost("/api/{game}/story", (string game, string c, StoryPost body, HttpRequest request, CharacterStore store) =>
+{
+    if (storyToken.Length == 0) return Results.NotFound();
+    if (!Authorized(request)) return Results.Unauthorized();
+    if (Game.Find(game) is not { } g || store.Find(g, c) is not { } entry) return Results.NotFound();
+    if (string.IsNullOrWhiteSpace(body.Markdown)) return Results.BadRequest(new { error = "No text." });
+    if (body.Markdown.Length > 200_000) return Results.BadRequest(new { error = "Too long." });
+    var text = store.WriteStory(g, entry, body.Markdown, body.Replace);
+    app.Logger.LogInformation("Story of {Game}/{Key} {What} ({Length} characters).", g.Key, entry.Key(g), body.Replace ? "replaced" : "got a new chapter", text.Length);
+    return Results.Ok(new { key = entry.Key(g), length = text.Length });
+}).WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(400_000));
+
 app.Map("/api/{**rest}", () => Results.NotFound());
 
 app.Run();
+
+record StoryPost(string Markdown, bool Replace = false);

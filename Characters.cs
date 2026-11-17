@@ -76,13 +76,50 @@ public class CharacterStore(string dataDir)
     public CharacterEntry? Find(Game game, string key) =>
         All(game).FirstOrDefault(c => c.Key(game) == key.ToLowerInvariant());
 
-    /// <summary>The story as HTML, or null when there is no story file yet.</summary>
-    public string? Story(Game game, CharacterEntry c)
+    string StoryFile(Game game, CharacterEntry c)
     {
         // The key comes from characters.json, not from the address, but is still kept to a plain file name
         var name = new string(c.Key(game).Replace('/', '-').Where(ch => char.IsLetterOrDigit(ch) || ch == '-').ToArray());
-        var file = Path.Combine(dataDir, "stories", game.Key, name + ".md");
+        return Path.Combine(dataDir, "stories", game.Key, name + ".md");
+    }
+
+    /// <summary>The story as HTML, or null when there is no story file yet.</summary>
+    public string? Story(Game game, CharacterEntry c)
+    {
+        var file = StoryFile(game, c);
         return File.Exists(file) ? Markdig.Markdown.ToHtml(File.ReadAllText(file), Markdown) : null;
+    }
+
+    /// <summary>The story as Markdown, or "" when there is none yet.</summary>
+    public string StoryMarkdown(Game game, CharacterEntry c)
+    {
+        var file = StoryFile(game, c);
+        return File.Exists(file) ? File.ReadAllText(file) : "";
+    }
+
+    static readonly object WriteLock = new();
+
+    /// <summary>
+    /// Adds a chapter to the end of the story, or replaces the whole story. The version it replaces is kept
+    /// in stories/&lt;game&gt;/.history/ first, so nothing posted can be lost.
+    /// </summary>
+    public string WriteStory(Game game, CharacterEntry c, string markdown, bool replace)
+    {
+        lock (WriteLock)
+        {
+            var file = StoryFile(game, c);
+            var old = File.Exists(file) ? File.ReadAllText(file) : "";
+            if (old.Length > 0)
+            {
+                var history = Path.Combine(Path.GetDirectoryName(file)!, ".history");
+                Directory.CreateDirectory(history);
+                File.WriteAllText(Path.Combine(history, $"{Path.GetFileNameWithoutExtension(file)}-{DateTime.Now:yyyyMMdd-HHmmss}.md"), old);
+            }
+            markdown = markdown.Replace("\r\n", "\n").Trim();
+            var text = replace || old.Trim().Length == 0 ? markdown + "\n" : old.TrimEnd() + "\n\n" + markdown + "\n";
+            File.WriteAllText(file, text, new System.Text.UTF8Encoding(false));
+            return text;
+        }
     }
 
     class CharacterList { public List<CharacterEntry> Characters { get; set; } = []; }
