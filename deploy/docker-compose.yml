@@ -1,0 +1,32 @@
+# Runs the WoW characters pages on the Synology NAS with Container Manager.
+#
+# Lives on the NAS in /volume1/docker/wowcharacters/ next to:
+#   app/    the published site (copied there by deploy.ps1)
+#   data/   characters.json and stories/ (created on first start, never touched by deploys)
+#   .env    the Blizzard API client (secret, see .env.example)
+#
+# Uses Microsoft's official .NET 8 runtime image, so no image has to be built.
+
+services:
+  wowcharacters:
+    image: mcr.microsoft.com/dotnet/aspnet:8.0
+    container_name: wowcharacters
+    restart: unless-stopped
+    # The NAS's own network: the lundqwist.se site reaches this one at localhost:8096
+    network_mode: host
+    working_dir: /app
+    command: ["dotnet", "WowCharacters.dll"]
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      # Listen only on the NAS itself; visitors come in through lundqwist.se
+      - ASPNETCORE_URLS=http://127.0.0.1:8096
+      # The pages live at https://lundqwist.se/wowcharacters/ (lundqwist.se passes those requests on)
+      - PathBase=/wowcharacters
+      - DataDir=/data
+      # Blizzard API client (develop.battle.net); without it only the character names are shown
+      - BLIZZARD_CLIENT_ID=${BLIZZARD_CLIENT_ID:-}
+      - BLIZZARD_CLIENT_SECRET=${BLIZZARD_CLIENT_SECRET:-}
+      - TZ=Europe/Stockholm
+    volumes:
+      - ./app:/app:ro
+      - ./data:/data

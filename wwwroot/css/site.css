@@ -1,0 +1,183 @@
+/* The same look as lundqwist.se: deep navy, thin gold lines and letters. */
+
+@font-face { font-family: 'Raleway'; font-weight: 300; font-display: swap; src: url('../fonts/raleway-latin-300-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Raleway'; font-weight: 400; font-display: swap; src: url('../fonts/raleway-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Raleway'; font-weight: 500; font-display: swap; src: url('../fonts/raleway-latin-500-normal.woff2') format('woff2'); }
+
+:root {
+  --navy-deep: #081428;
+  --navy: #0e2147;
+  --navy-light: #17366b;
+  --gold: #c9a36b;
+  --gold-soft: #e0c79d;
+  --text: #d5dceb;
+  --text-muted: #94a2bd;
+  --content: 60rem;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { color-scheme: dark; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--navy-deep);
+  color: var(--text);
+  font-family: 'Raleway', system-ui, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.7;
+}
+
+img { display: block; max-width: 100%; height: auto; }
+a { color: var(--gold); }
+a:hover { color: var(--gold-soft); }
+:focus-visible { outline: 2px solid var(--gold-soft); outline-offset: 3px; }
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+
+.site-header {
+  background: linear-gradient(180deg, #12295a 0%, var(--navy) 100%);
+  border-bottom: 1px solid var(--gold);
+}
+
+.site-header-inner {
+  max-width: calc(var(--content) + 4rem);
+  margin: 0 auto;
+  padding: 1.25rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+}
+
+.brand {
+  font-size: clamp(1.5rem, 4vw, 2.25rem);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  text-decoration: none;
+}
+.brand span { color: var(--gold-soft); }
+
+.site-nav { display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; }
+.site-nav a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+  padding-bottom: 0.15rem;
+  border-bottom: 1px solid transparent;
+}
+.site-nav a:hover, .site-nav a[aria-current='page'] { color: var(--gold); border-bottom-color: var(--gold); }
+
+/* ── Page ───────────────────────────────────────────────────────────────── */
+
+main {
+  flex: 1;
+  width: 100%;
+  max-width: calc(var(--content) + 4rem);
+  margin: 0 auto;
+  padding: 2.5rem 2rem 4rem;
+}
+
+h1, h2, h3 { font-weight: 300; color: var(--gold); line-height: 1.3; }
+h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); margin: 0 0 0.5rem; }
+h2 { font-size: 1.5rem; margin: 2.5rem 0 1rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--navy-light); }
+.lead { color: var(--text-muted); margin: 0 0 2rem; }
+.muted { color: var(--text-muted); }
+.notice { border: 1px solid var(--navy-light); border-left: 3px solid var(--gold); padding: 0.75rem 1rem; background: var(--navy); }
+
+.button {
+  display: inline-block;
+  padding: 0.45rem 1.1rem;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  text-decoration: none;
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+}
+.button:hover { background: var(--gold); color: var(--navy-deep); }
+.buttons { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 1rem 0; }
+
+/* ── The two games on the start page ────────────────────────────────────── */
+
+.games { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1.5rem; padding: 0; list-style: none; }
+.game-card {
+  display: block;
+  padding: 1.75rem;
+  border: 1px solid var(--navy-light);
+  background: linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color 0.2s;
+}
+.game-card:hover { border-color: var(--gold); color: var(--text); }
+.game-card h2 { margin: 0 0 0.5rem; border: 0; padding: 0; }
+.game-card p { margin: 0; color: var(--text-muted); }
+
+/* ── Character list ─────────────────────────────────────────────────────── */
+
+.characters { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 1.25rem; padding: 0; list-style: none; }
+.character-card {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid var(--navy-light);
+  background: var(--navy);
+  color: var(--text);
+  text-decoration: none;
+  height: 100%;
+}
+.character-card:hover { border-color: var(--gold); color: var(--text); }
+.avatar { width: 4.5rem; height: 4.5rem; flex: none; border: 1px solid var(--navy-light); background: var(--navy-deep); object-fit: cover; }
+.character-card .name { font-size: 1.2rem; color: var(--class, var(--gold)); }
+.character-card .info { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; }
+
+/* ── One character ──────────────────────────────────────────────────────── */
+
+.sheet-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 2rem; align-items: start; }
+.render {
+  background: radial-gradient(ellipse at center, var(--navy-light) 0%, var(--navy-deep) 70%);
+  border: 1px solid var(--navy-light);
+  min-height: 12rem;
+}
+.render img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; object-position: center 20%; }
+.char-title { color: var(--text-muted); margin: 0 0 1rem; }
+.facts { display: grid; grid-template-columns: auto 1fr; gap: 0.2rem 1.25rem; margin: 0; }
+.facts dt { color: var(--text-muted); }
+.facts dd { margin: 0; }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 0.4rem 1.5rem; padding: 0; list-style: none; }
+.stats li { display: flex; justify-content: space-between; border-bottom: 1px dotted var(--navy-light); }
+.stats span:first-child { color: var(--text-muted); }
+
+.gear { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.gear th, .gear td { text-align: left; padding: 0.3rem 0.75rem 0.3rem 0; border-bottom: 1px solid var(--navy-light); }
+.gear th { color: var(--text-muted); font-weight: 400; }
+.gear td.num { text-align: right; color: var(--text-muted); }
+.gear a { text-decoration: none; }
+
+.professions { padding: 0; list-style: none; }
+.professions li { margin-bottom: 0.5rem; }
+.professions .tiers { color: var(--text-muted); font-size: 0.9rem; }
+
+.story { max-width: 44rem; }
+.story img { margin: 1rem 0; border: 1px solid var(--navy-light); }
+.story blockquote { margin: 1rem 0; padding-left: 1rem; border-left: 2px solid var(--gold); color: var(--text-muted); }
+
+/* Item quality colors, as in the game */
+.q-POOR { color: #9d9d9d; } .q-COMMON { color: #ffffff; } .q-UNCOMMON { color: #1eff00; }
+.q-RARE { color: #0070dd; } .q-EPIC { color: #a335ee; } .q-LEGENDARY { color: #ff8000; }
+.q-ARTIFACT { color: #e6cc80; } .q-HEIRLOOM { color: #00ccff; }
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+
+.site-footer { border-top: 1px solid var(--navy-light); background: var(--navy); padding: 1.25rem 2rem; text-align: center; font-size: 0.85rem; color: var(--text-muted); }
+
+@media (max-width: 44rem) {
+  main { padding: 1.75rem 1.25rem 3rem; }
+  .sheet-head { grid-template-columns: 1fr; }
+}

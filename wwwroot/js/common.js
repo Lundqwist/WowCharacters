@@ -1,0 +1,42 @@
+// Shared by every page. The pages live under /wowcharacters/ on lundqwist.se, so every
+// address here is relative: the game pages are one folder down (retail/, forever/).
+
+// The class colors used in the game
+const CLASS_COLORS = {
+  'Death Knight': '#c41e3a', 'Demon Hunter': '#a330c9', 'Druid': '#ff7c0a', 'Evoker': '#33937f',
+  'Hunter': '#aad372', 'Mage': '#3fc7eb', 'Monk': '#00ff98', 'Paladin': '#f48cba', 'Priest': '#ffffff',
+  'Rogue': '#fff468', 'Shaman': '#0070dd', 'Warlock': '#8788ee', 'Warrior': '#c69b6d',
+}
+
+// Builds an element: el('a', { href: '...', class: 'x', text: 'Hi' }, child, child)
+function el(tag, attrs = {}, ...children) {
+  const e = document.createElement(tag)
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v === undefined || v === null || v === false) continue
+    if (k === 'text') e.textContent = v
+    else if (k === 'class') e.className = v
+    else if (k === 'style') e.style.cssText = v
+    else e.setAttribute(k, v)
+  }
+  for (const c of children.flat(Infinity)) if (c !== null && c !== undefined && c !== false) e.append(c)
+  return e
+}
+
+// The game this page belongs to, from <body data-game="retail">
+const GAME = document.body.dataset.game
+
+async function getJson(url) {
+  const response = await fetch(url)
+  if (response.status === 404) throw new Error('notfound')
+  if (!response.ok) throw new Error('failed')
+  return response.json()
+}
+
+// "Level 80 Orc Unholy Death Knight"
+function describe(c) {
+  return [c.level ? `Level ${c.level}` : '', c.race, c.spec, c.class].filter(Boolean).join(' ')
+}
+
+function title(text) {
+  document.title = `${text} · Lundqwist.se`
+}

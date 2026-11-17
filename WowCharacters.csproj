@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <!-- Same .NET version as the other sites on the NAS, so all run on the same container image -->
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>WowCharacters</RootNamespace>
+    <DefaultItemExcludes>$(DefaultItemExcludes);publish\**;data\**;deploy\**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Turns the character stories (Markdown) into HTML -->
+    <PackageReference Include="Markdig" Version="0.40.0" />
+  </ItemGroup>
+
+</Project>
