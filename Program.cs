@@ -22,6 +22,10 @@ builder.Services.AddSingleton<Armory>();
 
 var app = builder.Build();
 
+// lundqwist.se passes requests on over plain http and says in X-Forwarded-Proto that the visitor used https.
+// Trusting it (only from the same machine, the default) keeps redirects such as /wowcharacters -> /wowcharacters/ on https.
+app.UseForwardedHeaders(new ForwardedHeadersOptions { ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto });
+
 var pathBase = app.Configuration["PathBase"];
 if (!string.IsNullOrEmpty(pathBase)) app.UsePathBase(pathBase);
 
