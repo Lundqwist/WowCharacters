@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Crafting · World of Warcraft: Forever · Lundqwist.se</title>
+  <link rel="icon" href="../images/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../css/site.css">
+</head>
+<body data-game="forever">
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a class="brand" href="/">Lundqwist<span>.se</span></a>
+      <img class="emblem" src="../images/lundqwist-logo.webp" alt="" width="192" height="190">
+      <nav class="site-nav" aria-label="Characters">
+      <a href="../">Characters</a>
+      <a href="../retail/">Retail</a>
+      <a href="../forever/">Forever</a>
+      <a href="../forever/crafting.html" aria-current="page">Crafting</a>
+      <a href="/projects">Projects</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <h1>Crafting</h1>
+    <p class="lead">The professions of my WoW: Forever characters and every recipe they know. Open a profession's recipes and hover a recipe or a material for its tooltip.</p>
+    <nav id="char-nav" class="char-nav" aria-label="Characters"></nav>
+    <p id="status" class="muted">Loading…</p>
+    <div id="crafting"></div>
+    <p class="muted small crafting-note">
+      Skill levels and known recipes come from Blizzard's Armory, through the
+      <a href="/jawbreakers/crafting.html">Jawbreakers guild site</a> (updated from its Guild members page).
+      Only characters in Jawbreakers are shown. Recipe data and tooltips:
+      <a href="https://www.wowhead.com/forever" target="_blank" rel="noopener">Wowhead</a>.
+    </p>
+  </main>
+
+  <footer class="site-footer">
+    Character information from Blizzard's Armory. World of Warcraft is a trademark of Blizzard Entertainment; this is a fan page.
+  </footer>
+  <script src="../js/common.js"></script>
+  <!-- Wowhead's tooltip script: shows a tooltip on every link to wowhead.com -->
+  <script>const whTooltips = { colorLinks: false, iconizeLinks: false, renameLinks: false };</script>
+  <script src="https://wow.zamimg.com/widgets/power.js" defer></script>
+  <script src="../js/crafting.js"></script>
+</body>
+</html>
