@@ -6,8 +6,11 @@ const key = new URLSearchParams(location.search).get('c') || ''
 // Item links go to Wowhead; its tooltip script (power.js) then shows the item on hover
 const WOWHEAD = GAME === 'forever' ? 'https://www.wowhead.com/forever/' : 'https://www.wowhead.com/'
 
-getJson(`../api/${GAME}/character?c=${encodeURIComponent(key)}`)
-  .then(show)
+const load = () => getJson(`../api/${GAME}/character?c=${encodeURIComponent(key)}`).then(show)
+// Made once and moved into each new rendering, so its "Updated" note survives the reload
+const refresh = refreshButton(load)
+
+load()
   .catch((e) => {
     page.replaceChildren(
       el('h1', { text: e.message === 'notfound' ? 'Character not found' : 'Something went wrong' }),
@@ -37,7 +40,8 @@ function show(data) {
         el('div', {},
           el('dl', { class: 'facts panel' }, facts(s, data).map(([k, v]) => [el('dt', { text: k }), el('dd', { text: v })])),
           el('div', { class: 'buttons' },
-            el('a', { class: 'button', href: data.armoryUrl, target: '_blank', rel: 'noopener', text: 'View on the Armory' })))))
+            el('a', { class: 'button', href: data.armoryUrl, target: '_blank', rel: 'noopener', text: 'View on the Armory' }),
+            refresh))))
   }
 
   // The story comes first after the summary: it is what the page is really for

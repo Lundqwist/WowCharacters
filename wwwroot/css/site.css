@@ -97,6 +97,11 @@ main { flex: 1; width: 100%; max-width: var(--content); margin: 0 auto; padding:
 }
 .button:hover { color: #fff; background: linear-gradient(#c02a1d, var(--red)); }
 .buttons { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1.25rem 0 0; }
+button.button { cursor: pointer; font-size: .85rem; }
+button.button:disabled { opacity: .6; cursor: wait; }
+.refresh { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin: 0 0 1.25rem; }
+.refresh-note:empty { display: none; }
+.buttons .refresh { margin: 0; }
 
 .panel {
   background: linear-gradient(var(--panel-2), var(--panel));

@@ -94,6 +94,18 @@ app.MapGet("/api/{game}/character", async (string game, string c, CharacterStore
     });
 });
 
+// The "Update from the Armory" button: the game's cached Armory information counts as old, so the page's
+// next load reads it again from Blizzard. Anyone may press it, but only once per Armory.RefreshPause per game.
+app.MapPost("/api/{game}/refresh", (string game, Armory armory) =>
+{
+    if (Game.Find(game) is not { } g) return Results.NotFound();
+    if (!armory.Configured) return Results.Json(new { error = "Armory information is not available." }, statusCode: 503);
+    if (armory.Refresh(g) is { } wait)
+        return Results.Json(new { wait = (int)Math.Ceiling(wait.TotalSeconds) }, statusCode: 429);
+    app.Logger.LogInformation("Armory information for {Game} marked for updating.", g.Key);
+    return Results.Ok(new { ok = true });
+});
+
 // Writing stories from outside (the StoryMaker program, github.com/Lundqwist/StoryMaker).
 // Off unless STORY_TOKEN is set; every call needs "Authorization: Bearer <STORY_TOKEN>".
 //   GET  /api/{game}/story?c=<key>                         -> { markdown }: the whole story so far

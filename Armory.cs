@@ -14,12 +14,17 @@ namespace WowCharacters;
 public class Armory(IConfiguration config, ILogger<Armory> log)
 {
     public static readonly TimeSpan CacheTime = TimeSpan.FromHours(1);
+    /// <summary>How often the "Update from the Armory" button may empty a game's cache.</summary>
+    public static readonly TimeSpan RefreshPause = TimeSpan.FromMinutes(2);
     const string Api = "https://eu.api.blizzard.com";
     const string Locale = "locale=en_GB";
 
     static readonly HttpClient Http = CreateClient();
     static readonly SemaphoreSlim TokenLock = new(1, 1);
     readonly ConcurrentDictionary<string, (DateTime At, object? Value)> _cache = new();
+    // Per game: anything read before this time counts as old (set by the update button)
+    readonly ConcurrentDictionary<string, DateTime> _staleBefore = new();
+    static readonly object RefreshLock = new();
 
     string? _token;
     DateTime _tokenExpires;
@@ -42,7 +47,23 @@ public class Armory(IConfiguration config, ILogger<Armory> log)
         $"{Api}/profile/wow/character/{string.Join('/', key.Split('/').Select(Uri.EscapeDataString))}{part}?namespace={game.ProfileNamespace}&{Locale}";
 
     /// <summary>The short version for the list page: name, level, class, race, picture. Null when it can't be read.</summary>
-    public Task<object?> Card(Game game, string key) => Cached($"card:{game.Key}:{key}", async () =>
+    /// <summary>
+    /// Makes everything read for this game count as old, so the next page view reads it again from Blizzard.
+    /// Allowed once per RefreshPause; returns how long is left to wait when it is too soon, otherwise null.
+    /// Old values stay in the cache and are still shown if Blizzard can't be reached.
+    /// </summary>
+    public TimeSpan? Refresh(Game game)
+    {
+        lock (RefreshLock)
+        {
+            var now = DateTime.UtcNow;
+            if (_staleBefore.TryGetValue(game.Key, out var last) && now - last < RefreshPause) return RefreshPause - (now - last);
+            _staleBefore[game.Key] = now;
+            return null;
+        }
+    }
+
+    public Task<object?> Card(Game game, string key) => Cached(game, $"card:{game.Key}:{key}", async () =>
     {
         using var summary = await GetJson(ProfileUrl(game, key, ""));
         if (summary is null) return null;
@@ -65,7 +86,7 @@ public class Armory(IConfiguration config, ILogger<Armory> log)
     });
 
     /// <summary>Everything for the character's own page: summary, picture, gear, stats, professions.</summary>
-    public Task<object?> Sheet(Game game, string key) => Cached($"sheet:{game.Key}:{key}", async () =>
+    public Task<object?> Sheet(Game game, string key) => Cached(game, $"sheet:{game.Key}:{key}", async () =>
     {
         var docs = await Task.WhenAll(new[] { "", "/equipment", "/character-media", "/statistics", "/professions" }
             .Select(part => GetJson(ProfileUrl(game, key, part))));
@@ -99,10 +120,11 @@ public class Armory(IConfiguration config, ILogger<Armory> log)
         finally { foreach (var d in docs) d?.Dispose(); }
     });
 
-    async Task<object?> Cached(string cacheKey, Func<Task<object?>> read)
+    async Task<object?> Cached(Game game, string cacheKey, Func<Task<object?>> read)
     {
         if (!Configured) return null;
-        if (_cache.TryGetValue(cacheKey, out var kept) && DateTime.UtcNow - kept.At < CacheTime) return kept.Value;
+        var staleBefore = _staleBefore.GetValueOrDefault(game.Key, DateTime.MinValue);
+        if (_cache.TryGetValue(cacheKey, out var kept) && DateTime.UtcNow - kept.At < CacheTime && kept.At >= staleBefore) return kept.Value;
         try
         {
             var value = await read();

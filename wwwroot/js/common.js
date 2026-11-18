@@ -32,6 +32,34 @@ async function getJson(url) {
   return response.json()
 }
 
+// An "Update from the Armory" button. Asks the server to read this game's characters again from
+// Blizzard, then calls reload() to show the new information. The server allows it once every two minutes.
+function refreshButton(reload) {
+  const button = el('button', { type: 'button', class: 'button', text: 'Update from the Armory' })
+  const note = el('span', { class: 'muted refresh-note', role: 'status' })
+  button.addEventListener('click', async () => {
+    button.disabled = true
+    note.textContent = 'Updating…'
+    try {
+      const response = await fetch(`../api/${GAME}/refresh`, { method: 'POST' })
+      if (response.status === 429) {
+        const { wait } = await response.json()
+        note.textContent = `Just updated. Try again in ${wait >= 60 ? Math.ceil(wait / 60) + ' min' : wait + ' s'}.`
+      } else if (!response.ok) {
+        note.textContent = 'The Armory could not be reached right now.'
+      } else {
+        await reload()
+        note.textContent = `Updated ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}.`
+      }
+    } catch {
+      note.textContent = 'The update failed. Try again in a little while.'
+    } finally {
+      button.disabled = false
+    }
+  })
+  return el('div', { class: 'refresh' }, button, note)
+}
+
 // "Level 80 Orc Unholy Death Knight"
 function describe(c) {
   return [c.level ? `Level ${c.level}` : '', c.race, c.spec, c.class].filter(Boolean).join(' ')
