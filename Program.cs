@@ -71,6 +71,7 @@ app.MapGet("/api/{game}/characters", async (string game, CharacterStore store, A
             realm = c.Realm,
             armoryUrl = Armory.ArmoryUrl(g, c.Key(g)),
             hasStory = store.HasStory(g, c),
+            chapters = store.Chapters(g, c).Count,
             card = cards[i],
         }),
     });

@@ -19,21 +19,29 @@ function load() {
         refreshShown = true
       }
 
-      for (const c of data.characters) {
+      // Most chapters first; the same count keeps the order of characters.json (sort is stable)
+      const characters = [...data.characters].sort((a, b) => (b.chapters || 0) - (a.chapters || 0))
+      for (const c of characters) {
         const card = c.card
         const name = card?.name || c.name
         const info = card
           ? [describe(card), [card.realm || c.realm, card.guild && `<${card.guild}>`].filter(Boolean).join(' ')].filter(Boolean)
           : [c.realm, 'No Armory information'].filter(Boolean)
 
-        list.append(el('li', {},
-          el('a', { class: 'character-card', href: `character.html?c=${encodeURIComponent(c.key)}`,
-                    style: card?.class && CLASS_COLORS[card.class] ? `--class:${CLASS_COLORS[card.class]}` : null },
+        const page = `character.html?c=${encodeURIComponent(c.key)}`
+        list.append(el('li', { class: 'character-card',
+                               style: card?.class && CLASS_COLORS[card.class] ? `--class:${CLASS_COLORS[card.class]}` : null },
+          el('a', { class: 'who', href: page },
             card?.avatar ? el('img', { class: 'avatar', src: card.avatar, alt: '', loading: 'lazy' }) : el('div', { class: 'avatar' }),
             el('div', {},
               el('div', { class: 'name', text: name }),
-              info.map((line) => el('div', { class: 'info', text: line })),
-              c.hasStory ? el('div', { class: 'info', text: '📖 Has a story' }) : null))))
+              info.map((line) => el('div', { class: 'info', text: line })))),
+          // The story is on the character's page, under the summary
+          c.hasStory
+            ? el('a', { class: 'button story-link', href: `${page}#story` },
+                'Story',
+                el('span', { class: 'count', text: c.chapters === 1 ? '1 chapter' : `${c.chapters} chapters` }))
+            : el('span', { class: 'muted no-story', text: 'No story yet' })))
       }
     })
 }

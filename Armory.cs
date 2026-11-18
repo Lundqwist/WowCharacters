@@ -15,7 +15,7 @@ public class Armory(IConfiguration config, ILogger<Armory> log)
 {
     public static readonly TimeSpan CacheTime = TimeSpan.FromHours(1);
     /// <summary>How often the "Update from the Armory" button may empty a game's cache.</summary>
-    public static readonly TimeSpan RefreshPause = TimeSpan.FromMinutes(2);
+    public static readonly TimeSpan RefreshPause = TimeSpan.FromMinutes(10);
     const string Api = "https://eu.api.blizzard.com";
     const string Locale = "locale=en_GB";
 

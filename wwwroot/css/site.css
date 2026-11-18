@@ -143,13 +143,12 @@ button.button:disabled { opacity: .6; cursor: wait; }
 
 /* ── Character list ─────────────────────────────────────────────────────── */
 
-.characters { display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); gap: 1.25rem; padding: 0; list-style: none; }
+.characters { display: flex; flex-direction: column; gap: .75rem; padding: 0; list-style: none; }
 .character-card {
   display: flex;
   gap: 1rem;
   align-items: center;
-  height: 100%;
-  padding: 1rem 1.1rem;
+  padding: .75rem 1.1rem;
   color: var(--text);
   text-decoration: none;
   background: linear-gradient(var(--panel-2), var(--panel));
@@ -159,7 +158,16 @@ button.button:disabled { opacity: .6; cursor: wait; }
   box-shadow: 0 6px 16px rgba(0, 0, 0, .45);
   transition: transform .12s, border-color .12s;
 }
-.character-card:hover { color: var(--text); transform: translateY(-2px); border-color: var(--ember); border-top-color: var(--class, var(--ember)); }
+.character-card:hover { border-color: var(--ember); border-top-color: var(--class, var(--ember)); }
+.character-card .who { display: flex; gap: 1rem; align-items: center; flex: 1; min-width: 0; color: var(--text); text-decoration: none; }
+.character-card .who:hover .name { text-decoration: underline; }
+.character-card .story-link { flex: none; text-align: center; }
+.character-card .story-link .count { display: block; font-family: system-ui, sans-serif; font-size: .75rem; letter-spacing: 0; text-transform: none; opacity: .85; }
+.character-card .no-story { flex: none; font-size: .85rem; }
+@media (max-width: 34rem) {
+  .character-card { flex-wrap: wrap; }
+  .character-card .story-link, .character-card .no-story { width: 100%; }
+}
 .avatar { width: 4.5rem; height: 4.5rem; flex: none; border: 1px solid var(--line); border-radius: 3px; background: var(--bg); object-fit: cover; }
 .character-card .name { font-family: Georgia, serif; font-size: 1.2rem; color: var(--class, var(--gold)); }
 .character-card .info { font-size: .9rem; color: var(--muted); line-height: 1.5; }

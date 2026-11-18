@@ -87,6 +87,11 @@ function show(data) {
   }
 
   page.replaceChildren(...parts.filter(Boolean))
+  // The page is built after loading, so a link to #story (from the list) has to be followed here
+  if (location.hash && !show.scrolled) {
+    show.scrolled = true
+    document.getElementById(location.hash.slice(1))?.scrollIntoView()
+  }
 }
 
 // The realm: the Armory's name for it, or for Forever (which has no realms in the API) the label in characters.json

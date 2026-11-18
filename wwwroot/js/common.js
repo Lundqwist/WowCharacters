@@ -33,7 +33,7 @@ async function getJson(url) {
 }
 
 // An "Update from the Armory" button. Asks the server to read this game's characters again from
-// Blizzard, then calls reload() to show the new information. The server allows it once every two minutes.
+// Blizzard, then calls reload() to show the new information. The server allows it once every ten minutes.
 function refreshButton(reload) {
   const button = el('button', { type: 'button', class: 'button', text: 'Update from the Armory' })
   const note = el('span', { class: 'muted refresh-note', role: 'status' })
