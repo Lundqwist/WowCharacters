@@ -20,6 +20,7 @@ store.EnsureCreated();
 
 builder.Services.AddSingleton(store);
 builder.Services.AddSingleton<Armory>();
+builder.Services.AddSingleton<Crafting>();
 
 var app = builder.Build();
 
@@ -92,6 +93,32 @@ app.MapGet("/api/{game}/character", async (string game, string c, CharacterStore
         introHtml = store.Intro(g, entry),
         chapters = store.Chapters(g, entry).Select(ch => new { number = ch.Number, title = ch.Title, subtitle = ch.Subtitle }),
         sheet = await armory.Sheet(g, key),
+    });
+});
+
+// The crafting page (Forever only): every character's professions, skill and the spell ids of the recipes
+// it knows, from Blizzard's API. The recipe lists themselves are static files in wwwroot/recipes.
+app.MapGet("/api/forever/crafting", async (CharacterStore store, Armory armory, Crafting crafting) =>
+{
+    var g = Game.Find("forever")!;
+    var characters = store.All(g);
+    var cards = await Task.WhenAll(characters.Select(c => armory.Card(g, c.Key(g))));
+    var known = await Task.WhenAll(characters.Select(c => armory.Professions(g, c.Key(g))));
+    var order = Crafting.Professions.Select((p, i) => (p.Name, i)).ToDictionary(x => x.Name, x => x.i);
+    return Results.Ok(new
+    {
+        armory = armory.Configured,
+        professions = Crafting.Professions.Select(p => new { name = p.Name, guide = p.Guide, recipes = p.Recipes }),
+        characters = characters.Select((c, i) => new
+        {
+            key = c.Key(g),
+            name = c.Name,
+            card = cards[i],
+            professions = (known[i] as List<Armory.KnownProfession>)?
+                .Where(p => order.ContainsKey(p.Name))
+                .OrderBy(p => order[p.Name])
+                .Select(p => new { name = p.Name, skill = p.Skill, known = crafting.SpellIds(p.Name, p.Recipes) }),
+        }),
     });
 });
 

@@ -120,6 +120,39 @@ public class Armory(IConfiguration config, ILogger<Armory> log)
         finally { foreach (var d in docs) d?.Dispose(); }
     });
 
+    /// <summary>
+    /// For the crafting page: each profession's skill (the best tier) and the names of the recipes the character
+    /// knows. Null when it can't be read (no keys, or a character below level 10).
+    /// </summary>
+    public Task<object?> Professions(Game game, string key) => Cached(game, $"professions:{game.Key}:{key}", async () =>
+    {
+        using var doc = await GetJson(ProfileUrl(game, key, "/professions"));
+        if (doc is null) return null;
+        var list = new List<KnownProfession>();
+        foreach (var group in new[] { "primaries", "secondaries" })
+        {
+            if (!doc.RootElement.TryGetProperty(group, out var professions) || professions.ValueKind != JsonValueKind.Array) continue;
+            foreach (var p in professions.EnumerateArray())
+            {
+                var name = Name(p, "profession");
+                if (name.Length == 0) continue;
+                var best = Int(p, "skill_points");
+                var recipes = new List<string>();
+                if (p.TryGetProperty("tiers", out var tiers) && tiers.ValueKind == JsonValueKind.Array)
+                    foreach (var tier in tiers.EnumerateArray())
+                    {
+                        best = Math.Max(best, Int(tier, "skill_points"));
+                        if (tier.TryGetProperty("known_recipes", out var k) && k.ValueKind == JsonValueKind.Array)
+                            recipes.AddRange(k.EnumerateArray().Select(r => Text(r, "name")).Where(r => r.Length > 0));
+                    }
+                if (best > 0) list.Add(new KnownProfession(name, best, recipes));
+            }
+        }
+        return list;
+    });
+
+    public record KnownProfession(string Name, int Skill, List<string> Recipes);
+
     async Task<object?> Cached(Game game, string cacheKey, Func<Task<object?>> read)
     {
         if (!Configured) return null;

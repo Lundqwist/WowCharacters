@@ -13,13 +13,11 @@ Retail and WoW: Forever are two separate places:
 | Crafting (Forever) | `/wowcharacters/forever/crafting.html` |
 
 The crafting page shows each Forever character's professions and the recipes he knows, with
-materials and Wowhead tooltips. It has no data of its own: the browser reads it from the
-[Jawbreakers guild site](https://github.com/Lundqwist/Jawbreakers-Guild) on the same server
-(`/jawbreakers/api/meta`, `/api/characters`, `/api/crafting` and `/jawbreakers/recipes/*.json`),
-which gets skill levels and known recipes from Blizzard's API. My characters are matched to guild
-members by the Armory slug, so only characters in Jawbreakers appear. To test it locally, run
-`lundqwist-site`, `jawbreakers-under-site` and `wowcharacters` together and open
-<http://localhost:5080/wowcharacters/forever/crafting.html>.
+materials and Wowhead tooltips. `GET /api/forever/crafting` reads each character's skill levels and
+known recipes from Blizzard's API (`/professions`, cached an hour like the rest) and turns the recipe
+names into spell ids with the recipe lists in `wwwroot/recipes/*.json` (made once from Wowhead's Forever
+database; the profession list is in `Crafting.cs`). This used to come from the Jawbreakers guild site,
+which was retired on 2026-11-20. Without Blizzard keys the page only says that the Armory is unavailable.
 
 Each character page shows what the Armory knows (picture, level, race, class, guild, item level, stats,
 gear with Wowhead tooltips, professions), read live from Blizzard's official API and kept in memory for

@@ -84,7 +84,7 @@ function show(data) {
           el('div', { text: p.name }),
           el('div', { class: 'tiers', text: tiers.map((t) => `${t.name ? t.name + ': ' : ''}${t.skill}/${t.max}`).join(' · ') }))
       })),
-      // Forever: the recipes he knows are on the crafting page (only for characters in Jawbreakers)
+      // Forever: the recipes he knows are on the crafting page
       GAME === 'forever'
         ? el('p', {}, el('a', { href: `crafting.html#${encodeURIComponent(data.key)}`, text: 'Recipes on the crafting page →' }))
         : null)

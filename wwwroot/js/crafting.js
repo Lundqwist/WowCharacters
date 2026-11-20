@@ -1,9 +1,7 @@
 // The crafting page (forever/crafting.html): my Forever characters' professions and the recipes they know.
-// Everything comes from the Jawbreakers guild site on the same server (lundqwist.se/jawbreakers), which reads
-// skill levels and known recipes from Blizzard's API: its /api/meta, /api/characters and /api/crafting, and its
-// recipe lists in recipes/<profession>.json (made from Wowhead's Forever database).
+// Skill levels and known recipes come from Blizzard's API through this app's /api/forever/crafting; the recipe
+// lists are static files in recipes/<profession>.json (made from Wowhead's Forever database).
 
-const GUILD = '/jawbreakers/'
 const ARMORY = 'https://worldofwarcraft.blizzard.com/en-gb/forever/eu/armory/character/'
 const WOWHEAD = 'https://www.wowhead.com/forever/'
 const ICONS = 'https://wow.zamimg.com/images/wow/icons/small/'
@@ -24,7 +22,7 @@ const wowLink = (path, color, ...children) =>
 const recipeFiles = new Map()
 function recipeFile(name) {
   if (!recipeFiles.has(name)) {
-    recipeFiles.set(name, getJson(`${GUILD}recipes/${name}.json`).catch((e) => { recipeFiles.delete(name); throw e }))
+    recipeFiles.set(name, getJson(`../recipes/${name}.json`).catch((e) => { recipeFiles.delete(name); throw e }))
   }
   return recipeFiles.get(name)
 }
@@ -126,22 +124,21 @@ function professionCard(p, skill, knownIds) {
     p.guide ? el('a', { class: 'guide-link small', href: p.guide, target: '_blank', rel: 'noopener', text: 'Leveling guide ↗' }) : null)
 }
 
-Promise.all([getJson('../api/forever/characters'), getJson(`${GUILD}api/meta`), getJson(`${GUILD}api/characters`), getJson(`${GUILD}api/crafting`)])
-  .then(([mine, meta, members, crafting]) => {
+getJson('../api/forever/crafting')
+  .then((data) => {
     title('Crafting (WoW: Forever)')
-    // My characters are matched to guild members by the Armory address, which ends in the same slug as my keys
-    const bySlug = new Map(members.filter((m) => m.armoryUrl).map((m) => [decodeURIComponent(m.armoryUrl.split('/').pop()).toLowerCase(), m]))
-    const order = new Map(meta.professions.map((p, i) => [p.name, i]))
+    if (!data.armory) {
+      status.textContent = 'Armory information is not available right now, so there is no crafting information.'
+      return
+    }
     const sections = []
     const nav = document.getElementById('char-nav')
 
-    for (const c of mine.characters) {
-      const member = bySlug.get(c.key.toLowerCase())
-      const name = c.card?.name || member?.name || c.name
-      if (!member) continue
-      const skills = crafting.skills.filter((s) => s.characterId === member.id)
-        .sort((a, b) => (order.get(a.profession) ?? 99) - (order.get(b.profession) ?? 99))
-      const cls = c.card?.class || member.class
+    for (const c of data.characters) {
+      // No profile on the Armory (below level 10, or not read): nothing to show
+      if (!c.professions) continue
+      const name = c.card?.name || c.name
+      const cls = c.card?.class
       const color = CLASS_COLORS[cls] || 'var(--gold)'
       const id = c.key
 
@@ -149,18 +146,17 @@ Promise.all([getJson('../api/forever/characters'), getJson(`${GUILD}api/meta`), 
       sections.push(el('section', { class: 'crafter-section', id, style: `--class:${color}` },
         el('h2', {},
           el('a', { class: 'crafter-name', href: `character.html?c=${encodeURIComponent(c.key)}`, text: name }),
-          el('span', { class: 'muted crafter-info', text: describe({ level: c.card?.level || member.level, race: c.card?.race || member.race, class: cls }) })),
-        skills.length
-          ? el('ul', { class: 'profession-grid' }, skills.map((s) => {
-              const p = meta.professions.find((x) => x.name === s.profession) || { name: s.profession }
-              const knownIds = new Set(crafting.known.filter((k) => k.characterId === member.id && k.profession === s.profession).map((k) => k.spellId))
-              return professionCard(p, s.skill, knownIds)
+          c.card ? el('span', { class: 'muted crafter-info', text: describe({ level: c.card.level, race: c.card.race, class: cls }) }) : null),
+        c.professions.length
+          ? el('ul', { class: 'profession-grid' }, c.professions.map((s) => {
+              const p = data.professions.find((x) => x.name === s.name) || { name: s.name }
+              return professionCard(p, s.skill, new Set(s.known))
             }))
           : el('p', { class: 'muted', text: 'No professions yet.' }),
         el('p', { class: 'small' }, el('a', { href: ARMORY + c.key, target: '_blank', rel: 'noopener', text: 'View on the Armory ↗' }))))
     }
 
-    if (sections.length === 0) status.textContent = 'None of my characters are in Jawbreakers yet, so there is no crafting information.'
+    if (sections.length === 0) status.textContent = 'None of my Forever characters has professions on the Armory yet.'
     else status.remove()
     root.replaceChildren(...sections)
     if (location.hash) document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView()
